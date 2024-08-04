@@ -12,8 +12,14 @@ pub static DB: LazyLock<DbBackend> = LazyLock::new(|| {
 
 pub trait DbOperation {
     fn create_table_if_not_exist(&self, table: &str);
-    fn query_from_table(&self, table: &str, key: &[u8]) -> rusqlite::Result<MarsImage>;
+    fn query_from_table(&self, table: &str, key: &[u8]) -> rusqlite::Result<Option<MarsImage>>;
     fn insert_to_table(&self, table: &str, item: &MarsImage) -> rusqlite::Result<usize>;
+    /// Try to insert an item to table
+    ///
+    /// # Returns
+    ///
+    /// - If the item already exists, do not insert and return the existing one.
+    /// - If the item is inserted successfully, return `None`.
     fn insert_or_get_existing(
         &self,
         table: &str,
@@ -32,7 +38,7 @@ pub enum DbBackend {
     Binary(Mutex<rusqlite::Connection>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MarsImage {
     /// the message id in a group
     pub id: i32,
@@ -72,7 +78,7 @@ impl DbOperation for DbBackend {
             Self::Text => unimplemented!(),
         }
     }
-    fn query_from_table(&self, table: &str, key: &[u8]) -> rusqlite::Result<MarsImage> {
+    fn query_from_table(&self, table: &str, key: &[u8]) -> rusqlite::Result<Option<MarsImage>> {
         match self {
             Self::Binary(b) => b.lock().unwrap().query_from_table(table, key),
             Self::Text => unimplemented!(),

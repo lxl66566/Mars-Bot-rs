@@ -1,10 +1,8 @@
 use std::{path::PathBuf, sync::LazyLock};
 
 use home::home_dir;
-use url::Url;
 
-pub static TELEGRAM_URL: LazyLock<Url> =
-    LazyLock::new(|| Url::from_file_path("https://t.me/").expect("hardcoded url should be valid"));
+pub static TELEGRAM_URL: &str = "https://t.me/";
 
 pub static DATA_ROOT_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
     home_dir()
