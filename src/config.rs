@@ -1,15 +1,13 @@
+use std::sync::OnceLock;
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+
+pub static CONFIG: OnceLock<Config> = OnceLock::new();
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     /// only reply mars warning if the message is from a channel.
     pub only_mars_for_channel_message: bool,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            only_mars_for_channel_message: false,
-        }
-    }
+    pub token: Option<String>,
 }

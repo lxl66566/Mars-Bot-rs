@@ -7,17 +7,16 @@ use super::{DbOperation, MarsImage};
 impl DbOperation for rusqlite::Connection {
     fn create_table_if_not_exist(&self, table: &str) {
         let query = format!(
-            "CREATE TABLE IF NOT EXISTS {} (
+            "CREATE TABLE IF NOT EXISTS {table} (
                 id INTEGER NOT NULL,
                 sha BLOB PRIMARY KEY NOT NULL
-            );",
-            table
+            );"
         );
         self.execute(&query, []).expect("Table creation failed");
     }
 
     fn query_from_table(&self, table: &str, sha: &[u8]) -> rusqlite::Result<MarsImage> {
-        let query = format!("SELECT id, sha FROM {} WHERE sha = ?", table);
+        let query = format!("SELECT id, sha FROM {table} WHERE sha = ?");
         let mut stmt = self.prepare(&query)?;
         let mut rows = stmt.query(params![sha])?;
 
@@ -32,19 +31,18 @@ impl DbOperation for rusqlite::Connection {
         }
     }
 
-    fn insert_to_table(&self, table: &str, id: i32, sha: &[u8]) -> rusqlite::Result<usize> {
+    fn insert_to_table(&self, table: &str, item: &MarsImage) -> rusqlite::Result<usize> {
         self.create_table_if_not_exist(table);
-        let query = format!("INSERT INTO {} (id, sha) VALUES (?1, ?2)", table);
-        self.execute(&query, params![id, sha])
+        let query = format!("INSERT INTO {table} (id, sha) VALUES (?1, ?2)");
+        self.execute(&query, params![item.id, item.sha])
     }
 
     fn insert_or_get_existing(
         &self,
         table: &str,
-        id: i32,
-        sha: &[u8],
+        item: &MarsImage,
     ) -> rusqlite::Result<Option<MarsImage>> {
-        let result = self.insert_to_table(table, id, sha);
+        let result = self.insert_to_table(table, item);
         match result {
             Ok(_) => {
                 // Insert was successful
@@ -54,9 +52,13 @@ impl DbOperation for rusqlite::Connection {
                 if err.code == rusqlite::ErrorCode::ConstraintViolation =>
             {
                 // SHA conflict, fetch the existing MarsImage
-                Ok(Some(self.query_from_table(table, sha)?))
+                Ok(Some(self.query_from_table(table, &item.sha)?))
             }
             Err(e) => Err(e),
         }
+    }
+    fn drop_table(&self, table: &str) -> rusqlite::Result<()> {
+        let query = format!("DROP TABLE {table}");
+        self.execute(&query, params![]).map(|_| ())
     }
 }

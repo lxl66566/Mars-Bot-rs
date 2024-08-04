@@ -1,26 +1,34 @@
 [package]
-edition = "2021"
-name = "mars-bot-rs"
-version = "0.1.0"
+authors       = ["lxl66566 <lxl66566@gmail.com>"]
+categories    = ["api-bindings"]
+description   = "Telegram bot to detect repeated images"
+documentation = "https://github.com/lxl66566/Mars-Bot-rs"
+edition       = "2021"
+keywords      = ["telegram", "bot", "Mars"]
+license       = "Apache-2.0"
+name          = "mars-bot-rs"
+repository    = "https://github.com/lxl66566/Mars-Bot-rs"
+version       = "0.1.0"
+
 
 [dependencies]
-anyhow = "1.0.86"
-assert2 = "0.3.14"
-clap = { version = "4.5.13", features = ["derive"] }
-config-file2 = "0.3.2"
-die-exit = { version = "0.5.0", features = ["red"] }
-futures-util = "0.3.30"
-home = "0.5.9"
-log = "0.4.22"
+anyhow            = "1.0.86"
+assert2           = "0.3.14"
+clap              = { version = "4.5.13", features = ["derive"] }
+config-file2      = "0.3.2"
+die-exit          = { version = "0.5.0", features = ["red"] }
+futures-util      = "0.3.30"
+home              = "0.5.9"
+log               = "0.4.22"
 pretty_env_logger = "0.5.0"
-rusqlite = { version = "0.32.1", features = ["bundled"] }
+rusqlite          = { version = "0.32.1", features = ["bundled"] }
+serde             = { version = "1.0.204", features = ["derive"] }
+sha3              = "0.10.8"
+teloxide          = "0.12.2"
+tokio             = { version = "1.39.2", features = ["full"] }
+url               = "2.5.2"
 # sea-orm      = { version = "1.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-json"] }
 # sea-query    = { version = "0.31.0", features = ["backend-sqlite", "with-json", "derive"] }
-serde = { version = "1.0.204", features = ["derive"] }
-teloxide = "0.12.2"
-tokio = { version = "1.39.2", features = ["full"] }
-url = "2.5.2"
-sha3 = "0.10.8"
 
 [[bin]]
 name = "mars-bot"
