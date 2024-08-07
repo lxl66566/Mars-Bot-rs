@@ -72,7 +72,7 @@ async fn handler(bot: &'static Bot, message: Message) {
                 let res = DB
                 .insert_or_get_existing(
                     chat_id,
-                    &MarsImage::new(message_id.0, hash),
+                    MarsImage::new(message_id.0, hash),
                 )
                 .die_with(|e| format!("Error while insert hash to database: {e:?}"));
                 yield (file_id, res);

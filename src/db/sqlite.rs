@@ -1,5 +1,6 @@
 //! The implemention for binary db backend.
 
+use anyhow::Result;
 use rusqlite::params;
 
 use super::{DbOperation, MarsImage};
@@ -15,7 +16,7 @@ impl DbOperation for rusqlite::Connection {
         self.execute(&query, []).expect("Table creation failed");
     }
 
-    fn query_from_table(&self, table: &str, sha: &[u8]) -> rusqlite::Result<Option<MarsImage>> {
+    fn query_from_table(&self, table: &str, sha: &[u8]) -> Result<Option<MarsImage>> {
         let query = format!("SELECT id, sha FROM [{table}] WHERE sha = ?");
         let mut stmt = self.prepare(&query)?;
         let mut rows = stmt.query(params![sha])?;
@@ -26,20 +27,21 @@ impl DbOperation for rusqlite::Connection {
         }))
     }
 
-    fn insert_to_table(&self, table: &str, item: &MarsImage) -> rusqlite::Result<usize> {
+    fn insert_to_table(&self, table: &str, item: MarsImage) -> Result<()> {
         self.create_table_if_not_exist(table);
         let query = format!("INSERT INTO [{table}] (id, sha) VALUES (?1, ?2)");
-        self.execute(&query, params![item.id, item.sha])
+        self.execute(&query, params![item.id, item.sha])?;
+        Ok(())
     }
 
-    fn insert_or_get_existing(
-        &self,
-        table: &str,
-        item: &MarsImage,
-    ) -> rusqlite::Result<Option<MarsImage>> {
+    fn insert_or_get_existing(&self, table: &str, item: MarsImage) -> Result<Option<MarsImage>> {
+        let sha = item.sha.clone();
         let result = self.insert_to_table(table, item);
-        match result {
-            Ok(_) => {
+        match result.map_err(|e| {
+            e.downcast::<rusqlite::Error>()
+                .expect("the error cast should be success.")
+        }) {
+            Ok(()) => {
                 // Insert was successful
                 Ok(None)
             }
@@ -47,15 +49,16 @@ impl DbOperation for rusqlite::Connection {
                 if err.code == rusqlite::ErrorCode::ConstraintViolation =>
             {
                 // SHA conflict, fetch the existing MarsImage
-                self.query_from_table(table, &item.sha)
+                self.query_from_table(table, &sha)
             }
-            Err(e) => Err(e),
+            Err(e) => Err(e)?,
         }
     }
 
-    fn drop_table(&self, table: &str) -> rusqlite::Result<()> {
+    fn drop_table(&self, table: &str) -> Result<()> {
         let query = format!("DROP TABLE [{table}]");
-        self.execute(&query, params![]).map(|_| ())
+        self.execute(&query, params![])?;
+        Ok(())
     }
 }
 
@@ -86,7 +89,7 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.create_table_if_not_exist("123456789");
         let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
-        conn.insert_to_table("123456789", &item).unwrap();
+        conn.insert_to_table("123456789", item.clone()).unwrap();
         let result = conn
             .query_from_table("123456789", &[1, 2, 3, 4, 5, 6])
             .unwrap()
@@ -99,10 +102,10 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.create_table_if_not_exist("123456789");
         let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
-        let result = conn.insert_or_get_existing("123456789", &item).unwrap();
+        let result = conn.insert_or_get_existing("123456789", item).unwrap();
         assert!(result.is_none());
         let item2 = MarsImage::new(654_321, [1, 2, 3, 4, 5, 6]);
-        let result = conn.insert_or_get_existing("123456789", &item2).unwrap();
+        let result = conn.insert_or_get_existing("123456789", item2).unwrap();
         assert!(result.is_some());
     }
 
@@ -111,7 +114,7 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.create_table_if_not_exist("123456789");
         let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
-        conn.insert_to_table("123456789", &item).unwrap();
-        assert!(conn.insert_to_table("123456789", &item).is_err());
+        conn.insert_to_table("123456789", item.clone()).unwrap();
+        assert!(conn.insert_to_table("123456789", item).is_err());
     }
 }

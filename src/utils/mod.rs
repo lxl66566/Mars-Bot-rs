@@ -1,8 +1,10 @@
 pub mod constant;
+pub mod convert;
 // pub mod telegram;
 use std::sync::OnceLock;
 
 pub use constant::*;
+pub use convert::*;
 // pub use telegram::*;
 
 /// TODO: deal with private group
