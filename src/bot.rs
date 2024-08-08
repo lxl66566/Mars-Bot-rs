@@ -15,7 +15,7 @@ use teloxide::{net::Download, prelude::*, types::ParseMode};
 use crate::{
     cli::Cli,
     config::{Config, CONFIG},
-    db::{DbOperation, MarsImage, DB},
+    db::{MarsImage, DB},
     utils::{config_path, msg_url, OnceLockDefaultInit},
 };
 

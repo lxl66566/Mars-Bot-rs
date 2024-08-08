@@ -1,22 +1,32 @@
-pub mod sleddb;
+#[cfg(feature = "sled")]
+pub mod sled;
+#[cfg(feature = "sled")]
+pub use sled::*;
+#[cfg(feature = "sqlite")]
 pub mod sqlite;
-
-use std::sync::{LazyLock, Mutex};
+use std::{path::Path, sync::LazyLock};
 
 use anyhow::Result;
+#[cfg(feature = "sqlite")]
+pub use sqlite::*;
 
 pub use crate::utils::db_path;
 
-pub static DB: LazyLock<DbBackend> = LazyLock::new(|| {
-    // DbBackend::new_sqlite().die_with(|e| format!("Cannot attach db backend:
-    // {e:?}"))
-    DbBackend::new_sled()
-});
+#[cfg(feature = "sqlite")]
+pub static DB: LazyLock<Box<dyn DbOperation<Connection = ()> + Send + Sync>> =
+    LazyLock::new(|| new_db(db_path()));
 
+#[cfg(feature = "sled")]
+pub static DB: LazyLock<Box<dyn DbOperation<Connection = sled_crate::Db> + Send + Sync>> =
+    LazyLock::new(|| new_db(db_path()));
+
+#[allow(unused)]
 pub trait DbOperation {
-    fn create_table_if_not_exist(&self, table: &str);
+    type Connection;
+    fn create_table_if_not_exist(&self, table: &str) -> Self::Connection;
     fn query_from_table(&self, table: &str, key: &[u8]) -> Result<Option<MarsImage>>;
     fn insert_to_table(&self, table: &str, item: MarsImage) -> Result<()>;
+    fn exist_table(&self, table: &str) -> Result<bool>;
     /// Try to insert an item to table
     ///
     /// # Returns
@@ -25,21 +35,6 @@ pub trait DbOperation {
     /// - If the item is inserted successfully, return `None`.
     fn insert_or_get_existing(&self, table: &str, item: MarsImage) -> Result<Option<MarsImage>>;
     fn drop_table(&self, table: &str) -> Result<()>;
-}
-
-#[derive(Debug)]
-pub struct SledDb;
-
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum DbBackend {
-    /// The Text backend using serde to save all data in text. NOT IMPLEMENTED.
-    #[allow(unused)]
-    Text,
-    /// The Binary backend using Sqlite as backend.
-    Sqlite(Mutex<rusqlite::Connection>),
-    /// `RocksDB`
-    Sled(SledDb),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,53 +54,64 @@ impl MarsImage {
     }
 }
 
-/// The path is the database file path.
-impl DbBackend {
-    pub fn new_sqlite() -> rusqlite::Result<Self> {
-        Ok(Self::Sqlite(Mutex::new(rusqlite::Connection::open(
-            db_path().with_extension("sqlite3"),
-        )?)))
-    }
-    pub const fn new_sled() -> Self {
-        Self::Sled(SledDb)
-    }
+#[cfg(feature = "sqlite")]
+fn new_db(path: impl AsRef<Path>) -> Box<dyn DbOperation<Connection = ()> + Send + Sync> {
+    Box::new(Sqlite::new(path.as_ref()).die_with(|e| format!("Cannot attach db backend:{e:?}")))
 }
 
-/// Some boring impl
-impl DbOperation for DbBackend {
-    fn create_table_if_not_exist(&self, table: &str) {
-        match self {
-            Self::Sqlite(b) => b.lock().unwrap().create_table_if_not_exist(table),
-            Self::Sled(b) => b.create_table_if_not_exist(table),
-            Self::Text => unimplemented!(),
-        }
+#[cfg(feature = "sled")]
+fn new_db(
+    path: impl AsRef<Path>,
+) -> Box<dyn DbOperation<Connection = sled_crate::Db> + Send + Sync> {
+    Box::new(SledDb::new(path.as_ref()))
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn test_create_table_and_drop_table() {
+        let db = new_db(TempDir::new().unwrap());
+        db.create_table_if_not_exist("123456789");
+        assert!(db.exist_table("123456789").unwrap());
+        db.drop_table("123456789").unwrap();
+        assert!(!db.exist_table("123456789").unwrap());
     }
-    fn insert_to_table(&self, table: &str, item: MarsImage) -> Result<()> {
-        match self {
-            Self::Sqlite(b) => b.lock().unwrap().insert_to_table(table, item),
-            Self::Sled(b) => b.insert_to_table(table, item),
-            Self::Text => unimplemented!(),
-        }
+
+    #[test]
+    fn test_insert_get() {
+        let db = new_db(TempDir::new().unwrap());
+        db.create_table_if_not_exist("123456789");
+        let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
+        db.insert_to_table("123456789", item.clone()).unwrap();
+        let result = db
+            .query_from_table("123456789", &[1, 2, 3, 4, 5, 6])
+            .unwrap()
+            .unwrap();
+        assert_eq!(result, item);
     }
-    fn query_from_table(&self, table: &str, key: &[u8]) -> Result<Option<MarsImage>> {
-        match self {
-            Self::Sqlite(b) => b.lock().unwrap().query_from_table(table, key),
-            Self::Sled(b) => b.query_from_table(table, key),
-            Self::Text => unimplemented!(),
-        }
+
+    #[test]
+    fn test_insert_or_get_existing() {
+        let db = new_db(TempDir::new().unwrap());
+        db.create_table_if_not_exist("123456789");
+        let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
+        let result = db.insert_or_get_existing("123456789", item).unwrap();
+        assert!(result.is_none());
+        let item2 = MarsImage::new(654_321, [1, 2, 3, 4, 5, 6]);
+        let result = db.insert_or_get_existing("123456789", item2).unwrap();
+        assert!(result.is_some());
     }
-    fn insert_or_get_existing(&self, table: &str, item: MarsImage) -> Result<Option<MarsImage>> {
-        match self {
-            Self::Sqlite(b) => b.lock().unwrap().insert_or_get_existing(table, item),
-            Self::Sled(b) => b.insert_or_get_existing(table, item),
-            Self::Text => unimplemented!(),
-        }
-    }
-    fn drop_table(&self, table: &str) -> Result<()> {
-        match self {
-            Self::Sqlite(b) => b.lock().unwrap().drop_table(table),
-            Self::Sled(b) => b.drop_table(table),
-            Self::Text => unimplemented!(),
-        }
+
+    #[test]
+    fn double_insert_should_fail() {
+        let db = new_db(TempDir::new().unwrap());
+        db.create_table_if_not_exist("123456789");
+        let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
+        db.insert_to_table("123456789", item.clone()).unwrap();
+        assert!(db.insert_to_table("123456789", item).is_err());
     }
 }

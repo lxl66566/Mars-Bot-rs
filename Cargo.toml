@@ -25,15 +25,31 @@ hex               = "0.4.3"
 home              = "0.5.9"
 log               = "0.4.22"
 pretty_env_logger = "0.5.0"
-rusqlite          = { version = "0.32.1", features = ["bundled"] }
+rusqlite          = { version = "0.32.1", features = ["bundled"], optional = true }
 serde             = { version = "1.0.204", features = ["derive"] }
 sha3              = "0.10.8"
-sled              = { version = "0.34.7", features = ["compression"] }
+sled_crate        = { package = "sled", version = "0.34.7", features = ["compression"], optional = true }
 teloxide          = "0.12.2"
 tokio             = { version = "1.39.2", features = ["full"] }
+uluru             = "3.1.0"
 # sea-orm      = { version = "1.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-json"] }
 # sea-query    = { version = "0.31.0", features = ["backend-sqlite", "with-json", "derive"] }
+
+
+[dev-dependencies]
+tempfile = "3.12.0"
 
 [[bin]]
 name = "mars-bot"
 path = "src/main.rs"
+
+[features]
+default = ["sled"]
+sled    = ["sled_crate"]
+sqlite  = ["rusqlite"]
+
+[profile.release]
+lto       = true
+opt-level = "z"
+panic     = "abort"
+strip     = true

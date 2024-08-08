@@ -1,6 +1,8 @@
-use std::sync::OnceLock;
+use std::{path::PathBuf, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
+
+use crate::db::db_path;
 
 pub static CONFIG: OnceLock<Config> = OnceLock::new();
 
@@ -17,6 +19,8 @@ pub struct Config {
     /// If you find some error like `Character '.' is reserved and must be
     /// escaped...`, please escape them.
     pub mars_prompt: String,
+    /// The database path. If missing, it will be create.
+    pub db_dir: PathBuf,
 }
 
 impl Default for Config {
@@ -26,6 +30,7 @@ impl Default for Config {
             only_mars_for_channel_message: false,
             token: None,
             mars_prompt: "You Marsed\\! [Origin message]({})".to_string(),
+            db_dir: db_path(),
         }
     }
 }
