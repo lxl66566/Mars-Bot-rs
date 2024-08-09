@@ -93,6 +93,7 @@ jobs:
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: mars-bot
+          features: sled
           target: ${{ matrix.target }}
           tar: unix
           zip: windows

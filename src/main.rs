@@ -10,11 +10,12 @@ mod config;
 mod db;
 mod utils;
 
-
 use clap::Parser;
 use cli::{Cli, SubCommand};
+use config::Config;
+use config_file2::StoreConfigFile;
 use die_exit::DieWith;
-use utils::DATA_ROOT_PATH;
+use utils::{config_path, DATA_ROOT_PATH};
 
 use crate::db::DB;
 
@@ -36,6 +37,12 @@ async fn retry(cli: Cli) {
             SubCommand::Delete { chat_id } => DB
                 .drop_table(chat_id.as_str())
                 .die_with(|e| format!("drop table {chat_id} failed: {e:?}")),
+            SubCommand::Export => {
+                Config::default()
+                    .store_without_overwrite(config_path())
+                    .die_with(|e| format!("config file export error: {e:?}"));
+                println!("default config file save to `{:?}`.", config_path());
+            }
         }
     } else {
         bot::run(cli).await;

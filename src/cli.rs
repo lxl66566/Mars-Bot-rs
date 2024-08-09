@@ -23,4 +23,7 @@ pub enum SubCommand {
     /// delete all Mars record from a chat
     #[clap(alias("d"))]
     Delete { chat_id: String },
+    /// Export default config.
+    #[clap(alias("e"))]
+    Export,
 }

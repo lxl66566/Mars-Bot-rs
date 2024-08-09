@@ -80,8 +80,8 @@ impl DbOperation for SledDb {
     fn insert_or_get_existing(&self, table: &str, item: MarsImage) -> Result<Option<MarsImage>> {
         let db = self.create_table_if_not_exist(table);
         let exists = db.get(item.sha.clone())?;
-        if let Some(sha) = exists {
-            return Ok(Some(MarsImage::new(item.id, sha.to_vec())));
+        if let Some(id) = exists {
+            return Ok(Some(MarsImage::new(i32::from_vec_u8(&id), item.sha)));
         }
         let value = db.insert(item.sha.clone(), item.id.into_vec_u8())?;
         debug_assert!(value.is_none());

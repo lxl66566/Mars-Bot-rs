@@ -73,9 +73,12 @@ async fn handler(bot: &'static Bot, message: Message) {
                 .insert_or_get_existing(
                     chat_id,
                     MarsImage::new(message_id.0, hash),
-                )
-                .die_with(|e| format!("Error while insert hash to database: {e:?}"));
-                yield (file_id, res);
+                );
+                match res{
+                    Ok(res) => yield (file_id, res),
+                    Err(e) => error!("Error while insert hash to database: {e:?}")
+                }
+
             }
         })
         .collect::<Vec<_>>()
