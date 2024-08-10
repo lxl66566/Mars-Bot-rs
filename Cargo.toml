@@ -24,6 +24,7 @@ futures-util      = "0.3.30"
 hex               = "0.4.3"
 home              = "0.5.9"
 log               = "0.4.22"
+openssl           = { version = "0.10.66", features = ["vendored"], optional = true }
 pretty_env_logger = "0.5.0"
 rusqlite          = { version = "0.32.1", features = ["bundled"], optional = true }
 serde             = { version = "1.0.204", features = ["derive"] }
@@ -46,7 +47,7 @@ path = "src/main.rs"
 [features]
 default = ["sled"]
 sled    = ["sled_crate"]
-sqlite  = ["rusqlite"]
+sqlite  = ["rusqlite", "openssl"]
 
 [profile.release]
 lto       = true
