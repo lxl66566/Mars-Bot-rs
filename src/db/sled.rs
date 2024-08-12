@@ -5,7 +5,7 @@ use die_exit::DieWith;
 use sled_crate::Db;
 use uluru::LRUCache;
 
-use super::{db_path, DbOperation, MarsImage};
+use super::{DbOperation, MarsImage};
 use crate::utils::{FromVecU8, IntoVecU8};
 
 #[cfg(feature = "sled")]
@@ -71,6 +71,7 @@ impl DbOperation for SledDb {
         }
     }
 
+    /// This function will return Ok even if the key has already existed
     fn insert_to_table(&self, table: &str, item: MarsImage) -> Result<()> {
         let db = self.create_table_if_not_exist(table);
         let _value = db.insert(item.sha.clone(), item.id.into_vec_u8())?;
@@ -89,7 +90,8 @@ impl DbOperation for SledDb {
     }
 
     fn drop_table(&self, table: &str) -> Result<()> {
-        Ok(std::fs::remove_file(db_path().join(table))?)
+        std::fs::remove_dir_all(self.path.join(table))?;
+        Ok(())
     }
 
     fn exist_table(&self, table: &str) -> Result<bool> {

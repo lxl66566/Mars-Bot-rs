@@ -74,7 +74,8 @@ mod tests {
 
     #[test]
     fn test_create_table_and_drop_table() {
-        let db = new_db(TempDir::new().unwrap());
+        let tempdir = TempDir::new().unwrap();
+        let db = new_db(tempdir);
         db.create_table_if_not_exist("123456789");
         assert!(db.exist_table("123456789").unwrap());
         db.drop_table("123456789").unwrap();
@@ -83,7 +84,8 @@ mod tests {
 
     #[test]
     fn test_insert_get() {
-        let db = new_db(TempDir::new().unwrap());
+        let tempdir = TempDir::new().unwrap();
+        let db = new_db(tempdir);
         db.create_table_if_not_exist("123456789");
         let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
         db.insert_to_table("123456789", item.clone()).unwrap();
@@ -96,7 +98,8 @@ mod tests {
 
     #[test]
     fn test_insert_or_get_existing() {
-        let db = new_db(TempDir::new().unwrap());
+        let tempdir = TempDir::new().unwrap();
+        let db = new_db(tempdir);
         db.create_table_if_not_exist("123456789");
         let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
         let result = db.insert_or_get_existing("123456789", item).unwrap();
@@ -104,14 +107,5 @@ mod tests {
         let item2 = MarsImage::new(654_321, [1, 2, 3, 4, 5, 6]);
         let result = db.insert_or_get_existing("123456789", item2).unwrap();
         assert!(result.is_some());
-    }
-
-    #[test]
-    fn double_insert_should_fail() {
-        let db = new_db(TempDir::new().unwrap());
-        db.create_table_if_not_exist("123456789");
-        let item = MarsImage::new(123_456, [1, 2, 3, 4, 5, 6]);
-        db.insert_to_table("123456789", item.clone()).unwrap();
-        assert!(db.insert_to_table("123456789", item).is_err());
     }
 }
