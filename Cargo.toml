@@ -15,7 +15,7 @@ version       = "0.1.0"
 anyhow            = "1.0.92"
 assert2           = "0.3.14"
 async-stream      = "0.3.5"
-bytes             = "1.7.1"
+bytes             = "1.8.0"
 clap              = { version = "4.5.18", features = ["derive"] }
 config-file2      = "0.3.2"
 die-exit          = { version = "0.5.0", features = ["red"] }
