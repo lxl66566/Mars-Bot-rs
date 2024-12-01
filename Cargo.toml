@@ -12,7 +12,7 @@ version       = "0.1.0"
 
 
 [dependencies]
-anyhow            = "1.0.92"
+anyhow            = "1.0.93"
 assert2           = "0.3.14"
 async-stream      = "0.3.6"
 bytes             = "1.8.0"
